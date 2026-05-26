@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Misinformation Wheel Game</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #0f172a;
+  color: white;
+}
+
+canvas {
+  margin-top: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+#questionBox {
+  margin-top: 30px;
+}
+
+.option {
+  display: block;
+  margin: 10px auto;
+  padding: 10px;
+  width: 70%;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎡 AI & Misinformation Game</h1>
+
+<canvas id="wheel" width="300" height="300"></canvas>
+<br>
+<button onclick="spin()">Spin Wheel</button>
+
+<div id="questionBox"></div>
+
+<script>
+const data = [
+  {
+    title: "Video Clip",
+    question: "What should you do?",
+    options: [
+      "Share quickly",
+      "Trust it",
+      "Verify source",
+      "Ignore"
+    ],
+    correct: 2
+  },
+  {
+    title: "Job Offer",
+    question: "What is safest?",
+    options: [
+      "Apply fast",
+      "Trust design",
+      "Verify official source",
+      "Ask friends"
+    ],
+    correct: 2
+  },
+  {
+    title: "Voice Note",
+    question: "What is the risk?",
+    options: [
+      "Real speech",
+      "Voice cloning",
+      "Private leak",
+      "Rumor"
+    ],
+    correct: 1
+  }
+];
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+let angle = 0;
+const slice = (2 * Math.PI) / data.length;
+
+function drawWheel() {
+  for (let i = 0; i < data.length; i++) {
+    ctx.beginPath();
+    ctx.moveTo(150, 150);
+    ctx.arc(150, 150, 140,
+      angle + i * slice,
+      angle + (i + 1) * slice);
+    ctx.fillStyle = i % 2 ? "#22c55e" : "#38bdf8";
+    ctx.fill();
+
+    ctx.fillStyle = "white";
+    ctx.font = "14px Arial";
+    ctx.save();
+    ctx.translate(150, 150);
+    ctx.rotate(angle + i * slice + slice / 2);
+    ctx.fillText(data[i].title, 60, 0);
+    ctx.restore();
+  }
+}
+
+drawWheel();
+
+function spin() {
+  const spinAngle = Math.random() * 2000;
+  angle += spinAngle * Math.PI / 180;
+  ctx.clearRect(0,0,300,300);
+  drawWheel();
+
+  const index = Math.floor(data.length - (angle % (2*Math.PI)) / (2*Math.PI) * data.length) % data.length;
+  showQuestion(index);
+}
+
+function showQuestion(i) {
+  const q = data[i];
+
+  let html = `<h2>${q.title}</h2>`;
+  html += `<p>${q.question}</p>`;
+
+  q.options.forEach((opt, index) => {
+    html += `<button class="option" onclick="check(${i},${index})">${opt}</button>`;
+  });
+
+  document.getElementById("questionBox").innerHTML = html;
+}
+
+function check(i, answer) {
+  const correct = data[i].correct;
+
+  if (answer === correct) {
+    alert("✅ Correct!");
+  } else {
+    alert("❌ Wrong answer");
+  }
+}
+</script>
+
+</body>
+</html>
+``
