@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spinning Wheel Quiz Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --main-bg: #f6f6f6;
+      --primary: #1e90ff;
+      --secondary: #ffb400;
+      --correct: #23d160;
+      --wrong: #ff3860;
+      --border-color: #cccccc;
+      --font: 'Segoe UI', Arial, sans-serif;
+    }
+    body {
+      background: var(--main-bg);
+      font-family: var(--font);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      margin: 2rem 0;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.07);
+      max-width: 350px;
+      width: 100%;
+      padding: 20px 16px 30px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .score-bar {
+      width: 100%;
+      text-align: right;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .wheel-container {
+      margin: 10px 0 28px 0;
+      width: 250px;
+      height: 250px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .wheel-pointer {
+      position: absolute;
+      top: -26px; left: 50%;
+      z-index: 2;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-bottom: 28px solid var(--secondary);
+    }
+    #wheel {
+      width: 100%;
+      height: 100%;
+      transition: filter 0.2s;
+      filter: drop-shadow(0 0 4px #ddd);
+      touch-action: none;
+    }
+    .question-section {
+      width: 100%;
+      display: none;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .scenario-title {
+      color: var(--secondary);
+      font-weight: 600;
+      margin-top: 8px;
+      margin-bottom: 6px;
+      font-size: 1.1rem;
+    }
+    .question-text {
+      font-size: 1.08rem;
+      font-weight: 500;
+      margin-bottom: 14px;
+      color: #212121;
+    }
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .option-btn {
+      background: #f6f6f6;
+      color: #222;
+      padding: 0.78em 1.2em;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.16s, border-color 0.18s, color 0.14s;
+    }
+    .option-btn.selected {
+      border-color: var(--primary);
+      background: #eaf4ff;
+    }
+    .option-btn.correct {
+      background: var(--correct);
+      border-color: var(--correct);
+      color: #fff;
+    }
+    .option-btn.wrong {
+      background: var(--wrong);
+      border-color: var(--wrong);
+      color: #fff;
+    }
+    #next-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      outline: none;
+      padding: 0.7em 2em;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 1px;
+      margin-top: 2px;
+      margin-bottom: 4px;
+      transition: background 0.19s;
+      display: none;
+    }
+    #spin-btn {
+      background: var(--secondary);
+      color: #2d2d2d;
+      font-family: inherit;
+      font-weight: 600;
+      border: none;
+      outline: none;
+      margin: 8px 0 0 0;
+      border-radius: 8px;
+      padding: 0.7em 1.5em;
+      font-size: 1.05rem;
+      cursor: pointer;
+      box-shadow: 0 1px 3px #fbd46d48;
+      transition: background 0.15s;
+    }
+    #spin-btn:active {
+      background: #f5a700;
+    }
+    .result-section {
+      margin-top: 30px;
+      text-align: center;
+      width: 100%;
+      display: none;
+    }
+    .result-section h2 {
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .result-section button {
+      margin-top: 16px;
+      background: var(--secondary);
+      color: #333;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      outline: none;
+      border-radius: 8px;
+      padding: 0.7em 1.5em;
+      font-size: 1.08rem;
+      cursor: pointer;
+      transition: background 0.13s;
+    }
+
+    @media (max-width: 480px) {
+      .container { 
+        max-width: 98vw;
+        padding: 13px 5vw 30px 5vw;
+      }
+      .wheel-container { width: 82vw; height: 82vw; max-width: 99vw; max-height: 99vw;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="score-bar">
+      Score: <span id="score">0</span> / 0
+    </div>
+    <div class="wheel-container" id="wheel-area">
+      <div class="wheel-pointer"></div>
+      <canvas id="wheel" width="250" height="250"></canvas>
+    </div>
+    <button id="spin-btn">Spin Wheel</button>
+    <div class="question-section" id="question-section">
+      <div class="scenario-title" id="scenario-title"></div>
+      <div class="question-text" id="question"></div>
+      <div class="options-list" id="options"></div>
+      <button id="next-btn">Next Question</button>
+    </div>
+    <div class="result-section" id="result-section">
+      <h2>Quiz Complete!</h2>
+      <div>Your score: <span id="final-score"></span></div>
+      <button id="restart-btn">Restart</button>
+    </div>
+  </div>
+  <script>
+    // --------- Quiz Data (you can expand or change scenarios as desired) ----------
+    const SCENARIOS = [
+      {
+        scenario: "Unexpected Video Clip",
+        question: "What is the best response?",
+        options: [
+          "Keep watching carefully",
+          "Exit the page immediately",
+          "Share with friends",
+          "Leave a negative comment"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Strange Login Attempt",
+        question: "You notice a login to your account from an unusual location. What do you do?",
+        options: [
+          "Ignore it",
+          "Change your password immediately",
+          "Reply to the alert email with your password",
+          "Share your login credentials online"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Phishing Email",
+        question: "An email asks for your bank details urgently. Best response?",
+        options: [
+          "Reply with details",
+          "Delete the email",
+          "Click all links provided",
+          "Forward it to everyone"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Public Wi-Fi",
+        question: "On public Wi-Fi, you should:",
+        options: [
+          "Access sensitive accounts",
+          "Use a VPN",
+          "Trust all networks blindly",
+          "Ignore security warnings"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Unusual Attachment",
+        question: "A friend sends an unexpected file. What should you do?",
+        options: [
+          "Download and open it quickly",
+          "Ask your friend if it’s legitimate",
+          "Forward to coworkers",
+          "Ignore any suspicion"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Pop-up Warning",
+        question: "A pop-up claims your device is infected. What now?",
+        options: [
+          "Click to download the tool",
+          "Restart and check with real antivirus",
+          "Call the number immediately",
+          "Buy the suggested product"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Fake Social Profile",
+        question: "You receive a friend request from a fake-looking account. Best action?",
+        options: [
+          "Accept and interact",
+          "Ignore or report it",
+          "Send money urgently",
+          "Share your private info"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Password Sharing",
+        question: "A coworker asks for your password. You should:",
+        options: [
+          "Share it to help them",
+          "Politely decline and suggest IT help",
+          "Write it on a sticky note",
+          "Post it in team chat"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Strange App Behavior",
+        question: "An app you installed acts suspiciously. What next?",
+        options: [
+          "Uninstall and check device security",
+          "Ignore and continue",
+          "Post complaints online",
+          "Share screenshots with strangers"
+        ],
+        correct: 0
+      },
+      {
+        scenario: "Personal Info Request",
+        question: "A site asks for your mother's maiden name for a contest. You:",
+        options: [
+          "Enter it without worry",
+          "Refuse and leave the site",
+          "Post details on social media",
+          "Tell all your friends"
+        ],
+        correct: 1
+      },
+      {
+        scenario: "Software Update",
+        question: "You are prompted for a software update. What to check first?",
+        options: [
+          "Source and authenticity",
+          "Download from anywhere",
+          "Ignore updates forever",
+          "Ask random online people"
+        ],
+        correct: 0
+      },
+      {
+        scenario: "Suspicious SMS",
+        question: "You get an SMS with a strange link claiming you've won. Action?",
+        options: [
+          "Click the link to claim prize",
+          "Delete without clicking",
+          "Reply with bank account details",
+          "Share on social media"
+        ],
+        correct: 1
+      }
+    ];
+
+    // ------- Wheel Colors (repeat as necessary) ---------
+    const SEGMENT_COLORS = [
+      "#f39c12","#2ecc71","#3498db","#e67e22","#9b59b6","#16a085",
+      "#d35400","#c0392b","#2980b9","#7f8c8d","#27ae60","#e84393"
+    ];
+
+    // ---------- Quiz game state -----------
+    let usedIndices = [];
+    let score = 0;
+    let total = 0;
+    let spinning = false;
+    let selectedIndex = null; // For spinning wheel
+
+    // ---------- DOM Elements -------------
+    const wheel = document.getElementById("wheel");
+    const spinBtn = document.getElementById("spin-btn");
+    const wheelArea = document.getElementById("wheel-area");
+    const scenarioTitle = document.getElementById("scenario-title");
+    const questionText = document.getElementById("question");
+    const optionsList = document.getElementById("options");
+    const nextBtn = document.getElementById("next-btn");
+    const scoreBar = document.getElementById("score");
+    const questionSection = document.getElementById("question-section");
+    const resultSection = document.getElementById("result-section");
+    const finalScore = document.getElementById("final-score");
+    const restartBtn = document.getElementById("restart-btn");
+
+    // ---------- Wheel Drawing -------------
+    function drawWheel(highlightSegment = null) {
+      const ctx = wheel.getContext("2d");
+      ctx.clearRect(0, 0, wheel.width, wheel.height);
+      const n = SCENARIOS.length;
+      const cx = wheel.width/2, cy = wheel.height/2, radius = wheel.width/2 - 6;
+      const angleStep = 2 * Math.PI / n;
+
+      for (let i = 0; i < n; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, i * angleStep, (i+1) * angleStep);
+        ctx.fillStyle = (highlightSegment === i) ? "#fffac4" : SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate((i + 0.5) * angleStep);
+        ctx.textAlign = 'right';
+        ctx.font = "bold 15px var(--font)";
+        ctx.fillStyle = "#fff";
+        // Ellipsize scenario title
+        let t = SCENARIOS[i].scenario;
+        if (t.length > 17) t = t.slice(0,14) + "...";
+        ctx.shadowColor = "#333a";
+        ctx.shadowBlur = 4;
+        ctx.fillText(t, radius-16, 8);
+        ctx.restore();
+      }
+      // Outer border
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, 2*Math.PI);
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+    }
+
+    drawWheel();
+
+    // ----------- Spin Wheel Logic ------------
+    let currentRotation = 0;
+
+    function spinWheel() {
+      if (spinning) return;
+      if (usedIndices.length === SCENARIOS.length) {
+        // End of game
+        showResult();
+        return;
+      }
+      spinning = true;
+      spinBtn.disabled = true;
+      drawWheel();
+
+      // Pick a random unused segment index
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * SCENARIOS.length);
+      } while (usedIndices.includes(idx));
+
+      selectedIndex = idx;
+
+      // Calculate the angle (in radians) where this segment's center lands at top (12 o'clock)
+      const segments = SCENARIOS.length;
+      const anglePer = 2*Math.PI / segments;
+      const targetDeg = (270 - (idx * 360/segments)) % 360; // Top is 270°
+      // Add several rounds to make it spin
+      const extraRounds = Math.floor(Math.random()*2) + 4; // 4~5 wraps
+      const finalDeg = 360*extraRounds + targetDeg;
+
+      // Animate!
+      let start = null;
+      const duration = 3000 + Math.random()*500;
+      let animFrame;
+
+      function animate(ts) {
+        if (!start) start = ts;
+        let elapsed = ts - start;
+        // Ease out cubic
+        let t = Math.min(elapsed / duration, 1);
+        let ease = (--t)*t*t+1; // cubic-out
+
+        currentRotation = finalDeg * ease;
+
+        wheel.style.transform = `rotate(${currentRotation}deg)`;
+        if (elapsed < duration) {
+          animFrame = requestAnimationFrame(animate);
+        } else {
+          // Snap to final
+          wheel.style.transform = `rotate(${finalDeg}deg)`;
+          spinning = false;
+          usedIndices.push(selectedIndex);
+          setTimeout(showQuestion, 400);
+        }
+      }
+      animFrame = requestAnimationFrame(animate);
+    }
+
+    spinBtn.addEventListener("click", spinWheel);
+
+    // ----------- Show Question Logic -------------
+    function showQuestion() {
+      const data = SCENARIOS[selectedIndex];
+      scenarioTitle.textContent = "Scenario: " + data.scenario;
+      questionText.textContent = data.question;
+      optionsList.innerHTML = "";
+      nextBtn.style.display = "none";
+      questionSection.style.display = "block";
+      spinBtn.style.display = "none";
+      let answered = false;
+
+      data.options.forEach((option, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.textContent = String.fromCharCode(65+idx)+". "+option;
+        btn.addEventListener("click", function() {
+          if (answered) return;
+          answered = true;
+          total++;
+          if (idx === data.correct) {
+            btn.classList.add("correct");
+            score++;
+          } else {
+            btn.classList.add("wrong");
+          }
+          // Reveal all: mark correct
+          [...optionsList.children].forEach((b, i) => {
+            b.disabled = true;
+            if (i === data.correct) {
+              b.classList.add("correct");
+            } else if (i === idx) {
+              b.classList.add(i === data.correct ? "correct" : "wrong");
+            }
+          });
+          scoreBar.textContent = `${score} / ${total}`;
+          nextBtn.style.display = "inline-block";
+        });
+        optionsList.appendChild(btn);
+      });
+    }
+
+    nextBtn.addEventListener("click", () => {
+      questionSection.style.display = "none";
+      if (usedIndices.length === SCENARIOS.length) {
+        showResult();
+        return;
+      }
+      spinBtn.style.display = "inline-block";
+      spinBtn.disabled = false;
+      drawWheel();
+    });
+
+    // ------------- Show result logic -------------
+    function showResult() {
+      resultSection.style.display = "block";
+      finalScore.textContent = `${score} / ${total}`;
+      wheelArea.style.display = "none";
+      questionSection.style.display = "none";
+      spinBtn.style.display = "none";
+      scoreBar.textContent = `${score} / ${total}`;
+    }
+
+    restartBtn.addEventListener("click", () => {
+      usedIndices = [];
+      score = 0;
+      total = 0;
+      spinning = false;
+      selectedIndex = null;
+      scoreBar.textContent = "0 / 0";
+      wheelArea.style.display = "flex";
+      questionSection.style.display = "none";
+      resultSection.style.display = "none";
+      spinBtn.style.display = "inline-block";
+      spinBtn.disabled = false;
+      wheel.style.transform = "rotate(0deg)";
+      currentRotation = 0;
+      drawWheel();
+    });
+
+    // -------- Keyboard: Space to spin/next ----------
+    document.addEventListener("keydown", function(e) {
+      if (e.key === " " && !spinning) {
+        if (resultSection.style.display === "block") return;
+        if (spinBtn.style.display !== "none" && !spinBtn.disabled) spinWheel();
+        else if (nextBtn.style.display !== "none") nextBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
